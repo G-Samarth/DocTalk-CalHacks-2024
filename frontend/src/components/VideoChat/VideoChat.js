@@ -39,6 +39,15 @@ function VideoChat() {
   const connectionRef = useRef();
 
   useEffect(() => {
+    socket.on("callUser", (data) => {
+      setReceivingCall(true);
+      setCaller(data.from);
+      setName(data.name);
+      setCallerSignal(data.signal);
+    });
+
+    socket.on("me", (id) => setMe(id));
+
     navigator.mediaDevices
       .getUserMedia({ video: true, audio: true })
       .then((currentStream) => {
@@ -48,14 +57,10 @@ function VideoChat() {
         }
       });
 
-    socket.on("me", (id) => setMe(id));
-
-    socket.on("callUser", (data) => {
-      setReceivingCall(true);
-      setCaller(data.from);
-      setName(data.name);
-      setCallerSignal(data.signal);
-    });
+    return () => {
+      socket.off("me");
+      socket.off("callUser");
+    };
   }, []);
 
   const callUser = (id) => {
