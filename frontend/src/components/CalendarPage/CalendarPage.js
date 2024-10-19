@@ -10,22 +10,59 @@ const CalendarPage = () => {
   const isDoctor = location.pathname.includes("/doctor");
   const userType = isDoctor ? "doctor" : "patient";
 
-  const [date, setDate] = useState(new Date());
-  const [appointments] = useState([
-    { id: 1, time: "09:00 AM", patient: "John Doe", doctor: "Dr. Smith" },
-    { id: 2, time: "11:30 AM", patient: "Jane Smith", doctor: "Dr. Smith" },
-    { id: 3, time: "02:00 PM", patient: "Bob Johnson", doctor: "Dr. Smith" },
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
+  // Pre-defined appointments for different dates
+  const allAppointments = {
+    "2024-10-19": [
+      { id: 1, time: "09:00 AM", patient: "John Doe", doctor: "Dr. Smith" },
+      { id: 2, time: "11:30 AM", patient: "Jane Smith", doctor: "Dr. Smith" },
+    ],
+    "2024-10-20": [
+      { id: 3, time: "02:00 PM", patient: "Bob Johnson", doctor: "Dr. Smith" },
+      { id: 4, time: "04:30 PM", patient: "Alice Brown", doctor: "Dr. Smith" },
+    ],
+    "2024-10-21": [
+      {
+        id: 5,
+        time: "10:00 AM",
+        patient: "Charlie Davis",
+        doctor: "Dr. Smith",
+      },
+    ],
+  };
+
+  const [prescriptionsAndDiagnosis] = useState([
+    {
+      id: 1,
+      type: "Prescription",
+      description: "Amoxicillin 500mg, 3 times daily for 7 days",
+      date: "2024-10-18",
+    },
+    {
+      id: 2,
+      type: "Diagnosis",
+      description: "Acute sinusitis",
+      date: "2024-10-18",
+    },
+    {
+      id: 3,
+      type: "Prescription",
+      description: "Ibuprofen 400mg, as needed for pain",
+      date: "2024-10-19",
+    },
   ]);
-  const [pendingReviews] = useState([
-    { id: 1, patient: "Alice Brown", date: "2023-10-18" },
-    { id: 2, patient: "Charlie Davis", date: "2023-10-19" },
-  ]);
+
+  const getAppointmentsForDate = (date) => {
+    const dateString = date.toISOString().split("T")[0];
+    return allAppointments[dateString] || [];
+  };
 
   return (
     <Layout userType={userType}>
       <div className="container mx-auto py-8">
         <h1 className="text-3xl font-bold mb-8 text-red-700">
-          Doctor's Schedule
+          {isDoctor ? "Doctor's Schedule" : "Patient's Calendar"}
         </h1>
         <div className="flex gap-8">
           <div className="w-2/3">
@@ -36,8 +73,8 @@ const CalendarPage = () => {
               <CardContent>
                 <DayPicker
                   mode="single"
-                  selected={date}
-                  onSelect={setDate}
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
                   className="mx-auto"
                   classNames={{
                     months: "flex flex-col",
@@ -72,24 +109,24 @@ const CalendarPage = () => {
             <Card className="p-6">
               <CardHeader>
                 <CardTitle className="text-xl font-bold mb-4">
-                  Today's Appointments
+                  {isDoctor ? "Appointments" : "Upcoming Appointments"}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2">
-                  {appointments.map((appointment) => (
+                  {getAppointmentsForDate(selectedDate).map((appointment) => (
                     <li
                       key={appointment.id}
                       className="bg-gray-100 p-3 rounded-md hover:bg-gray-200 transition-colors"
                     >
                       <Link
-                        to={`/${isDoctor ? "doctor" : "patient"}/video-chat`}
+                        to={`/${userType}/video-chat`}
                         className="text-blue-600 hover:text-blue-800 block"
                       >
                         <span className="font-semibold">
                           {appointment.time}
                         </span>{" "}
-                        - {appointment.patient}
+                        - {isDoctor ? appointment.patient : appointment.doctor}
                       </Link>
                     </li>
                   ))}
@@ -99,25 +136,40 @@ const CalendarPage = () => {
             <Card className="p-6">
               <CardHeader>
                 <CardTitle className="text-xl font-bold mb-4">
-                  Pending Reviews
+                  {isDoctor ? "Pending Reviews" : "Prescriptions and Diagnosis"}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2">
-                  {pendingReviews.map((review) => (
-                    <li
-                      key={review.id}
-                      className="bg-gray-100 p-3 rounded-md hover:bg-gray-200 transition-colors"
-                    >
-                      <Link
-                        to={`/${isDoctor ? "doctor" : "patient"}/review-pdf`}
-                        className="text-blue-600 hover:text-blue-800 block"
-                      >
-                        <span className="font-semibold">{review.patient}</span>{" "}
-                        - {review.date}
-                      </Link>
-                    </li>
-                  ))}
+                  {isDoctor
+                    ? prescriptionsAndDiagnosis.map((item) => (
+                        <li
+                          key={item.id}
+                          className="bg-gray-100 p-3 rounded-md hover:bg-gray-200 transition-colors"
+                        >
+                          <Link
+                            to={`/doctor/review-pdf`}
+                            className="text-blue-600 hover:text-blue-800 block"
+                          >
+                            <span className="font-semibold">{item.type}</span> -{" "}
+                            {item.date}
+                          </Link>
+                        </li>
+                      ))
+                    : prescriptionsAndDiagnosis.map((item) => (
+                        <li
+                          key={item.id}
+                          className="bg-gray-100 p-3 rounded-md hover:bg-gray-200 transition-colors"
+                        >
+                          <Link
+                            to={`/patient/review-pdf`}
+                            className="text-blue-600 hover:text-blue-800 block"
+                          >
+                            <span className="font-semibold">{item.type}</span> -{" "}
+                            {item.date}
+                          </Link>
+                        </li>
+                      ))}
                 </ul>
               </CardContent>
             </Card>
