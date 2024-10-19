@@ -1,11 +1,13 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import Layout from "../Layout/Layout";
 import { Card, CardHeader, CardTitle, CardContent } from "../Card/Card.js";
 import { Button } from "../Button/Button.js";
 import { Clock, Smartphone, Database, MapPin } from "lucide-react";
 
 const LandingPage = () => {
+  const { userType } = useParams();
+
   const scrollToSection = (id) => {
     const element = document.getElementById(id);
     if (element) {
@@ -14,7 +16,7 @@ const LandingPage = () => {
   };
 
   return (
-    <Layout>
+    <Layout userType={userType}>
       {/* Main navigation */}
       <div className="bg-gray-100 py-2">
         <div className="container mx-auto flex justify-between items-center">
@@ -53,23 +55,33 @@ const LandingPage = () => {
         <div className="container mx-auto flex items-center">
           <div className="w-1/2 pr-8">
             <h1 className="text-4xl font-bold mb-4 text-red-700">
-              Transforming Healthcare, One Consultation at a Time
+              {userType === "doctor"
+                ? "Streamline Your Practice with AI"
+                : "Get Quality Healthcare Anytime, Anywhere"}
             </h1>
             <p className="text-xl mb-8">
-              Real-time doctor's assistant that automates consultations,
-              diagnoses, prescriptions, and appointments—saving time for doctors
-              and improving patient care.
+              {userType === "doctor"
+                ? "Our AI assistant automates consultations, diagnoses, and appointments—saving you time and improving patient care."
+                : "Connect with top doctors, schedule appointments, and receive care from the comfort of your home."}
             </p>
             <Button
               size="lg"
               className="bg-red-700 hover:bg-red-800 text-white"
             >
-              Get Started in Minutes
+              <Link
+                to={
+                  userType === "doctor"
+                    ? "/doctor/calendar"
+                    : "/patient/doctors"
+                }
+              >
+                {userType === "doctor" ? "View Your Calendar" : "Find a Doctor"}
+              </Link>
             </Button>
           </div>
           <div className="w-1/2">
             <img
-              src="/resources/landing-pic.jpg"
+              src={"/resources/landing-pic.jpg"}
               alt="Medical consultation"
               className="rounded-lg shadow-lg"
             />

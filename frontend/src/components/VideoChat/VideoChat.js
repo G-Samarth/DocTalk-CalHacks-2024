@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import "./VideoChat.css";
 import IncomingCallNotification from "../IncomingCallNotification/IncomingCallNotification.js";
+import { useLocation } from "react-router-dom";
 
 const socket = io("http://localhost:4000", {
   transports: ["websocket"],
@@ -23,6 +24,9 @@ const socket = io("http://localhost:4000", {
 });
 
 function VideoChat() {
+  const location = useLocation();
+  const userRole = location.pathname.includes("/doctor") ? "doctor" : "patient";
+
   const [me, setMe] = useState("");
   const [stream, setStream] = useState(null);
   const [receivingCall, setReceivingCall] = useState(false);
@@ -40,8 +44,6 @@ function VideoChat() {
   const connectionRef = useRef();
 
   useEffect(() => {
-    const path = window.location.pathname;
-    const userRole = path.endsWith("/doctor") ? "doctor" : "patient";
     setRole(userRole);
     setName(userRole.charAt(0).toUpperCase() + userRole.slice(1)); // Capitalize the role for the name
 
@@ -143,7 +145,7 @@ function VideoChat() {
   };
 
   return (
-    <Layout>
+    <Layout userType={userRole}>
       <div className="container mx-auto py-8">
         <h1 className="text-3xl font-bold mb-8 text-red-700 text-center">
           Dr. Chat - {role.charAt(0).toUpperCase() + role.slice(1)} View

@@ -1,16 +1,20 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { DayPicker } from "react-day-picker";
 import { Card, CardHeader, CardTitle, CardContent } from "../Card/Card.js";
 import Layout from "../Layout/Layout.js";
 import "react-day-picker/dist/style.css";
 
 const CalendarPage = () => {
+  const location = useLocation();
+  const isDoctor = location.pathname.includes("/doctor");
+  const userType = isDoctor ? "doctor" : "patient";
+
   const [date, setDate] = useState(new Date());
   const [appointments] = useState([
-    { id: 1, time: "09:00 AM", patient: "John Doe" },
-    { id: 2, time: "11:30 AM", patient: "Jane Smith" },
-    { id: 3, time: "02:00 PM", patient: "Bob Johnson" },
+    { id: 1, time: "09:00 AM", patient: "John Doe", doctor: "Dr. Smith" },
+    { id: 2, time: "11:30 AM", patient: "Jane Smith", doctor: "Dr. Smith" },
+    { id: 3, time: "02:00 PM", patient: "Bob Johnson", doctor: "Dr. Smith" },
   ]);
   const [pendingReviews] = useState([
     { id: 1, patient: "Alice Brown", date: "2023-10-18" },
@@ -18,7 +22,7 @@ const CalendarPage = () => {
   ]);
 
   return (
-    <Layout>
+    <Layout userType={userType}>
       <div className="container mx-auto py-8">
         <h1 className="text-3xl font-bold mb-8 text-red-700">
           Doctor's Schedule
@@ -79,7 +83,7 @@ const CalendarPage = () => {
                       className="bg-gray-100 p-3 rounded-md hover:bg-gray-200 transition-colors"
                     >
                       <Link
-                        to={`/video-chat/${appointment.id}`}
+                        to={`/${isDoctor ? "doctor" : "patient"}/video-chat`}
                         className="text-blue-600 hover:text-blue-800 block"
                       >
                         <span className="font-semibold">
@@ -106,7 +110,7 @@ const CalendarPage = () => {
                       className="bg-gray-100 p-3 rounded-md hover:bg-gray-200 transition-colors"
                     >
                       <Link
-                        to={`/review-pdf/${review.id}`}
+                        to={`/${isDoctor ? "doctor" : "patient"}/review-pdf`}
                         className="text-blue-600 hover:text-blue-800 block"
                       >
                         <span className="font-semibold">{review.patient}</span>{" "}

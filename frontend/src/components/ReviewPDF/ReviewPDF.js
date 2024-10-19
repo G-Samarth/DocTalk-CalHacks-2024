@@ -1,12 +1,16 @@
 import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "../Layout/Layout.js";
+import { useLocation } from "react-router-dom";
 
 const ReviewPDF = () => {
   const { id } = useParams();
+  const location = useLocation();
+  const isDoctor = location.pathname.includes("/doctor");
+  const userType = isDoctor ? "doctor" : "patient";
 
   return (
-    <Layout>
+    <Layout userType={userType}>
       <div className="container mx-auto py-8">
         <h1 className="text-3xl font-bold mb-8 text-red-700 text-center">
           Review PDF
