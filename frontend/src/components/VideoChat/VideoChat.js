@@ -13,6 +13,7 @@ import {
   Copy,
 } from "lucide-react";
 import "./VideoChat.css";
+import IncomingCallNotification from "../IncomingCallNotification/IncomingCallNotification.js";
 
 const socket = io("http://localhost:4000", {
   transports: ["websocket"],
@@ -28,25 +29,33 @@ function VideoChat() {
   const [caller, setCaller] = useState("");
   const [callerSignal, setCallerSignal] = useState();
   const [callAccepted, setCallAccepted] = useState(false);
-  const [idToCall, setIdToCall] = useState("");
   const [callEnded, setCallEnded] = useState(false);
   const [name, setName] = useState("");
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
+  const [role, setRole] = useState("");
 
   const myVideo = useRef();
   const userVideo = useRef();
   const connectionRef = useRef();
 
   useEffect(() => {
+    const path = window.location.pathname;
+    const userRole = path.endsWith("/doctor") ? "doctor" : "patient";
+    setRole(userRole);
+    setName(userRole.charAt(0).toUpperCase() + userRole.slice(1)); // Capitalize the role for the name
+
+    socket.emit("request_id", userRole);
+
+    socket.on("assigned_id", (id) => {
+      setMe(id);
+    });
+
     socket.on("callUser", (data) => {
       setReceivingCall(true);
       setCaller(data.from);
-      setName(data.name);
       setCallerSignal(data.signal);
     });
-
-    socket.on("me", (id) => setMe(id));
 
     navigator.mediaDevices
       .getUserMedia({ video: true, audio: true })
@@ -58,12 +67,13 @@ function VideoChat() {
       });
 
     return () => {
-      socket.off("me");
+      socket.off("assigned_id");
       socket.off("callUser");
     };
   }, []);
 
-  const callUser = (id) => {
+  const callUser = () => {
+    const idToCall = role === "doctor" ? "patient" : "doctor";
     const peer = new Peer({
       initiator: true,
       trickle: false,
@@ -72,7 +82,7 @@ function VideoChat() {
 
     peer.on("signal", (data) => {
       socket.emit("callUser", {
-        userToCall: id,
+        userToCall: idToCall,
         signalData: data,
         from: me,
         name: name,
@@ -132,17 +142,11 @@ function VideoChat() {
     }
   };
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(me).then(() => {
-      alert("ID copied to clipboard!");
-    });
-  };
-
   return (
     <Layout>
       <div className="container mx-auto py-8">
         <h1 className="text-3xl font-bold mb-8 text-red-700 text-center">
-          Dr. Chat
+          Dr. Chat - {role.charAt(0).toUpperCase() + role.slice(1)} View
         </h1>
         <div className="grid grid-cols-2 gap-8 mb-4">
           <div className="video-container">
@@ -190,41 +194,17 @@ function VideoChat() {
                 <PhoneOff />
               </Button>
             ) : (
-              <Button onClick={() => callUser(idToCall)} variant="default">
+              <Button onClick={callUser} variant="default">
                 <Phone />
               </Button>
             )}
           </div>
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <input
-              type="text"
-              placeholder="Your Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="p-2 border rounded"
-            />
-            <input
-              type="text"
-              placeholder="ID to call"
-              value={idToCall}
-              onChange={(e) => setIdToCall(e.target.value)}
-              className="p-2 border rounded"
-            />
-          </div>
-          <div className="flex items-center justify-center space-x-2">
-            <span className="text-gray-700">Your ID: {me || "Loading..."}</span>
-            <Button onClick={copyToClipboard} variant="outline" size="sm">
-              <Copy size={16} />
-            </Button>
+          <div className="flex items-center justify-center space-x-2 mt-4">
+            <span className="text-gray-700">Your Role: {role}</span>
           </div>
         </div>
         {receivingCall && !callAccepted && (
-          <div className="mt-4 text-center">
-            <h3 className="text-lg font-semibold mb-2">{name} is calling...</h3>
-            <Button onClick={answerCall} variant="default">
-              Answer
-            </Button>
-          </div>
+          <IncomingCallNotification onAnswer={answerCall} />
         )}
       </div>
     </Layout>
