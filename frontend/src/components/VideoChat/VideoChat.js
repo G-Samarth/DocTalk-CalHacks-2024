@@ -3,15 +3,7 @@ import io from "socket.io-client";
 import Peer from "simple-peer";
 import Layout from "../Layout/Layout";
 import { Button } from "../Button/Button.js";
-import {
-  Mic,
-  MicOff,
-  Video,
-  VideoOff,
-  Phone,
-  PhoneOff,
-  Copy,
-} from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, Phone, PhoneOff } from "lucide-react";
 import "./VideoChat.css";
 import IncomingCallNotification from "../IncomingCallNotification/IncomingCallNotification.js";
 import { useLocation } from "react-router-dom";
@@ -38,14 +30,17 @@ function VideoChat() {
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [role, setRole] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
 
   const myVideo = useRef();
   const userVideo = useRef();
   const connectionRef = useRef();
+  const mediaRecorder = useRef(null);
+  const audioChunks = useRef([]);
 
   useEffect(() => {
     setRole(userRole);
-    setName(userRole.charAt(0).toUpperCase() + userRole.slice(1)); // Capitalize the role for the name
+    setName(userRole.charAt(0).toUpperCase() + userRole.slice(1));
 
     socket.emit("request_id", userRole);
 
@@ -72,7 +67,47 @@ function VideoChat() {
       socket.off("assigned_id");
       socket.off("callUser");
     };
-  }, []);
+  }, [userRole]);
+
+  const startRecording = () => {
+    audioChunks.current = [];
+    const audioStream = new MediaStream(stream.getAudioTracks());
+    mediaRecorder.current = new MediaRecorder(audioStream);
+
+    mediaRecorder.current.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        audioChunks.current.push(event.data);
+      }
+    };
+
+    mediaRecorder.current.start();
+    setIsRecording(true);
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder.current && isRecording) {
+      mediaRecorder.current.stop();
+      setIsRecording(false);
+
+      mediaRecorder.current.onstop = () => {
+        const audioBlob = new Blob(audioChunks.current, { type: "audio/wav" });
+        sendAudioToServer(audioBlob);
+      };
+    }
+  };
+
+  const sendAudioToServer = (audioBlob) => {
+    const formData = new FormData();
+    formData.append("audio", audioBlob, `recording_${Date.now()}.wav`);
+
+    fetch("http://localhost:4000/save-audio", {
+      method: "POST",
+      body: formData,
+    })
+      .then((response) => response.json())
+      .then((data) => console.log("Audio saved:", data))
+      .catch((error) => console.error("Error saving audio:", error));
+  };
 
   const callUser = () => {
     const idToCall = role === "doctor" ? "patient" : "doctor";
@@ -98,6 +133,7 @@ function VideoChat() {
     socket.on("callAccepted", (signal) => {
       setCallAccepted(true);
       peer.signal(signal);
+      startRecording();
     });
 
     connectionRef.current = peer;
@@ -121,10 +157,12 @@ function VideoChat() {
 
     peer.signal(callerSignal);
     connectionRef.current = peer;
+    startRecording();
   };
 
   const leaveCall = () => {
     setCallEnded(true);
+    stopRecording();
     if (connectionRef.current) {
       connectionRef.current.destroy();
     }
@@ -203,6 +241,7 @@ function VideoChat() {
           </div>
           <div className="flex items-center justify-center space-x-2 mt-4">
             <span className="text-gray-700">Your Role: {role}</span>
+            {isRecording && <span className="text-red-500">Recording...</span>}
           </div>
         </div>
         {receivingCall && !callAccepted && (
