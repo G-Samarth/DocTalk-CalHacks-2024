@@ -123,7 +123,48 @@ const Layout = ({ children }) => {
                 </li>
               </ul>
             </div>
-            {/* ... rest of the footer content ... */}
+            <div>
+              <h4 className="text-lg font-semibold mb-4">Contact Info</h4>
+              <ul className="space-y-2">
+                <li className="flex items-center">
+                  <Mail size={16} className="mr-2" />
+                  <a
+                    href="mailto:support@healthassist.com"
+                    className="text-gray-400 hover:text-white"
+                  >
+                    support@healthassist.com
+                  </a>
+                </li>
+                <li className="flex items-center">
+                  <Phone size={16} className="mr-2" />
+                  <a
+                    href="tel:+11234567890"
+                    className="text-gray-400 hover:text-white"
+                  >
+                    (123) 456-7890
+                  </a>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-lg font-semibold mb-4">Newsletter</h4>
+              <p className="mb-4">
+                Stay updated with our latest news and offers.
+              </p>
+              <form className="flex">
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  className="bg-gray-800 text-white px-4 py-2 rounded-l-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+                <button
+                  type="submit"
+                  className="bg-red-700 text-white px-4 py-2 rounded-r-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  Subscribe
+                </button>
+              </form>
+            </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
             <p>&copy; 2024 HealthAssist. All rights reserved.</p>
