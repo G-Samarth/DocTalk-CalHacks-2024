@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { DayPicker } from "react-day-picker";
 import { Card, CardHeader, CardTitle, CardContent } from "../Card/Card.js";
 import Layout from "../Layout/Layout.js";
 import "react-day-picker/dist/style.css";
+import { storage } from "../../firebase";
+import { ref, listAll, getMetadata } from "firebase/storage";
 
 const CalendarPage = () => {
   const location = useLocation();
@@ -11,6 +13,8 @@ const CalendarPage = () => {
   const userType = isDoctor ? "doctor" : "patient";
 
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [files, setFiles] = useState([]);
+  const [error, setError] = useState(null);
 
   // Pre-defined appointments for different dates
   const allAppointments = {
@@ -32,30 +36,59 @@ const CalendarPage = () => {
     ],
   };
 
-  const [prescriptionsAndDiagnosis] = useState([
-    {
-      id: 1,
-      type: "Prescription",
-      description: "Amoxicillin 500mg, 3 times daily for 7 days",
-      date: "2024-10-18",
-    },
-    {
-      id: 2,
-      type: "Diagnosis",
-      description: "Acute sinusitis",
-      date: "2024-10-18",
-    },
-    {
-      id: 3,
-      type: "Prescription",
-      description: "Ibuprofen 400mg, as needed for pain",
-      date: "2024-10-19",
-    },
-  ]);
-
   const getAppointmentsForDate = (date) => {
     const dateString = date.toISOString().split("T")[0];
     return allAppointments[dateString] || [];
+  };
+
+  useEffect(() => {
+    const fetchFiles = async () => {
+      try {
+        console.log("Attempting to fetch files from Storage...");
+        const storageRef = ref(storage, "pdfs");
+        const fileList = await listAll(storageRef);
+
+        console.log("Files fetched:", fileList.items.length);
+
+        const filesWithMetadata = await Promise.all(
+          fileList.items.map(async (item) => {
+            const metadata = await getMetadata(item);
+            return {
+              name: item.name,
+              fullPath: item.fullPath,
+              type: metadata.contentType,
+              date: metadata.timeCreated,
+            };
+          })
+        );
+
+        // Filter out .placeholder and non-PDF files
+        const pdfFiles = filesWithMetadata.filter(
+          (file) =>
+            file.type === "application/pdf" && file.name !== ".placeholder"
+        );
+
+        console.log("PDF files:", pdfFiles);
+        setFiles(pdfFiles);
+      } catch (error) {
+        console.error("Error fetching files:", error);
+        setError(`Error fetching files: ${error.message}`);
+      }
+    };
+
+    fetchFiles();
+  }, []);
+
+  console.log("Rendering CalendarPage, error:", error, "files:", files);
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
+
+  const launchVideoCall = () => {
+    try {
+      window.open("https://doc-talk.daily.co/doc-talk", "_blank");
+    } catch (error) {}
   };
 
   return (
@@ -65,7 +98,7 @@ const CalendarPage = () => {
           {isDoctor ? "Doctor's Schedule" : "Patient's Calendar"}
         </h1>
         <div className="flex gap-8">
-          <div className="w-2/3">
+          <div className="w-2/4">
             <Card className="p-6">
               <CardHeader>
                 <CardTitle className="text-xl font-bold">Calendar</CardTitle>
@@ -105,7 +138,7 @@ const CalendarPage = () => {
               </CardContent>
             </Card>
           </div>
-          <div className="w-1/3 space-y-8">
+          <div className="w-2/4 space-y-8">
             <Card className="p-6">
               <CardHeader>
                 <CardTitle className="text-xl font-bold mb-4">
@@ -120,7 +153,7 @@ const CalendarPage = () => {
                       className="bg-gray-100 p-3 rounded-md hover:bg-gray-200 transition-colors"
                     >
                       <Link
-                        to={`/${userType}/video-chat`}
+                        onClick={launchVideoCall}
                         className="text-blue-600 hover:text-blue-800 block"
                       >
                         <span className="font-semibold">
@@ -140,37 +173,28 @@ const CalendarPage = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-2">
-                  {isDoctor
-                    ? prescriptionsAndDiagnosis.map((item) => (
-                        <li
-                          key={item.id}
-                          className="bg-gray-100 p-3 rounded-md hover:bg-gray-200 transition-colors"
+                {files.length > 0 ? (
+                  <ul className="space-y-2">
+                    {files.map((file) => (
+                      <li
+                        key={file.fullPath}
+                        className="bg-gray-100 p-3 rounded-md hover:bg-gray-200 transition-colors"
+                      >
+                        <Link
+                          to={`/${userType}/review-pdf/${encodeURIComponent(
+                            file.fullPath
+                          )}`}
+                          className="text-blue-600 hover:text-blue-800 block"
                         >
-                          <Link
-                            to={`/doctor/review-pdf`}
-                            className="text-blue-600 hover:text-blue-800 block"
-                          >
-                            <span className="font-semibold">{item.type}</span> -{" "}
-                            {item.date}
-                          </Link>
-                        </li>
-                      ))
-                    : prescriptionsAndDiagnosis.map((item) => (
-                        <li
-                          key={item.id}
-                          className="bg-gray-100 p-3 rounded-md hover:bg-gray-200 transition-colors"
-                        >
-                          <Link
-                            to={`/patient/review-pdf`}
-                            className="text-blue-600 hover:text-blue-800 block"
-                          >
-                            <span className="font-semibold">{item.type}</span> -{" "}
-                            {item.date}
-                          </Link>
-                        </li>
-                      ))}
-                </ul>
+                          <span className="font-semibold">{file.name}</span> -{" "}
+                          {new Date(file.date).toLocaleDateString()}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No files found.</p>
+                )}
               </CardContent>
             </Card>
           </div>

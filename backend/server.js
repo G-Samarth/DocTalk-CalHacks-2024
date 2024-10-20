@@ -5,6 +5,10 @@ const cors = require("cors");
 const multer = require("multer");
 const admin = require("firebase-admin");
 const serviceAccount = require("./firebase-adminsdk.json");
+const axios = require("axios");
+const fs = require("fs");
+const path = require("path");
+require("dotenv").config();
 
 const app = express();
 const server = http.createServer(app);
@@ -16,6 +20,9 @@ const io = socketIo(server, {
 });
 
 app.use(cors());
+app.use(express.json());
+
+const apiKey = process.env.DAILY_API_KEY;
 
 // Initialize Firebase
 admin.initializeApp({
@@ -48,7 +55,7 @@ checkFirebaseConnection().then((isConnected) => {
 });
 
 async function setupFolders() {
-  const folders = ["audio_recordings", "other_files"];
+  const folders = ["audio_recordings", "pdfs"];
 
   for (const folder of folders) {
     try {
@@ -127,7 +134,7 @@ app.post("/save-file", upload.single("file"), async (req, res) => {
 
   const file = req.file;
   const fileName = generateUniqueFilename(file.originalname, "file");
-  const filePath = `other_files/${fileName}`;
+  const filePath = `pdfs/${fileName}`;
 
   const fileUpload = bucket.file(filePath);
 
@@ -202,4 +209,231 @@ io.on("connection", (socket) => {
   });
 });
 
+const recordingsDir = path.join(__dirname, "recordings");
+
+if (!fs.existsSync(recordingsDir)) {
+  try {
+    fs.mkdirSync(recordingsDir, { recursive: true });
+  } catch (err) {
+    process.exit(1);
+  }
+}
+
+try {
+  fs.accessSync(recordingsDir, fs.constants.W_OK);
+} catch (err) {
+  process.exit(1);
+}
+
+const checkRecordingStatus = async (recordingId) => {
+  try {
+    const response = await axios.get(
+      `https://api.daily.co/v1/recordings/${recordingId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return (
+      response.data.status === "finished" ||
+      response.data.status === "completed"
+    );
+  } catch (error) {
+    return false;
+  }
+};
+
+const getDownloadLink = async (recordingId) => {
+  for (let i = 0; i < 5; i++) {
+    try {
+      const downloadLinkResponse = await axios.get(
+        `https://api.daily.co/v1/recordings/${recordingId}/access-link`,
+        {
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      return downloadLinkResponse.data.download_link;
+    } catch (error) {
+      if (i < 4) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    }
+  }
+  throw new Error(
+    `Failed to get download link for recording ${recordingId} after 5 attempts`
+  );
+};
+
+const downloadFile = (url, filePath) => {
+  return new Promise((resolve, reject) => {
+    const fileStream = fs.createWriteStream(filePath);
+
+    https
+      .get(url, (response) => {
+        if (response.statusCode !== 200) {
+          reject(new Error(`Failed to get '${url}' (${response.statusCode})`));
+          return;
+        }
+
+        response.pipe(fileStream);
+
+        fileStream.on("error", (err) => {
+          fileStream.close();
+          reject(err);
+        });
+
+        fileStream.on("finish", () => {
+          fileStream.close();
+          resolve(filePath);
+        });
+      })
+      .on("error", (err) => {
+        fileStream.close();
+        reject(err);
+      });
+  });
+};
+
+app.get("/api/check-call-and-recording", async (req, res) => {
+  if (!apiKey) {
+    return res.status(500).json({ error: "API key is not configured" });
+  }
+
+  try {
+    const sessionsResponse = await axios.get(
+      "https://api.daily.co/v1/meetings",
+      {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        params: {
+          room: "doc-talk",
+        },
+      }
+    );
+
+    const activeSessions = sessionsResponse.data.data.filter(
+      (session) => session.ongoing
+    );
+    const callEnded = activeSessions.length === 0;
+
+    let recordingReady = false;
+    let downloadedFilePath = null;
+
+    if (callEnded) {
+      const recordingsResponse = await axios.get(
+        "https://api.daily.co/v1/recordings",
+        {
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          params: {
+            room_name: "doc-talk",
+            limit: 10,
+          },
+        }
+      );
+
+      const sortedRecordings = recordingsResponse.data.data.sort(
+        (a, b) => b.start_ts - a.start_ts
+      );
+      const latestRecording = sortedRecordings[0];
+
+      if (latestRecording) {
+        recordingReady = await checkRecordingStatus(latestRecording.id);
+        if (recordingReady) {
+          try {
+            const downloadLink = await getDownloadLink(latestRecording.id);
+            const fileName = `recording_${latestRecording.id}.mp4`;
+            const filePath = path.join(recordingsDir, fileName);
+            await downloadFile(downloadLink, filePath);
+            downloadedFilePath = filePath;
+          } catch (downloadError) {
+            return res.status(500).json({
+              error: "Failed to download recording",
+              details: downloadError.message,
+            });
+          }
+        }
+      }
+    }
+
+    res.json({
+      callEnded,
+      recordingReady,
+      downloadedFilePath: downloadedFilePath
+        ? path.basename(downloadedFilePath)
+        : null,
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: "Failed to check call and recording status",
+      details: error.message,
+    });
+  }
+});
+
 server.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+
+// const express = require("express");
+// const cors = require("cors");
+// const multer = require("multer");
+// const { exec } = require("child_process");
+// const path = require("path");
+// const fs = require("fs");
+
+// const app = express();
+// app.use(cors());
+
+// // Set up multer for handling file uploads
+// const storage = multer.diskStorage({
+//   destination: function (req, file, cb) {
+//     cb(null, "uploads/");
+//   },
+//   filename: function (req, file, cb) {
+//     cb(null, "audio_" + Date.now() + path.extname(file.originalname));
+//   },
+// });
+
+// const upload = multer({ storage: storage });
+
+// app.post("/save-audio", upload.single("audio"), (req, res) => {
+//   if (!req.file) {
+//     return res.status(400).send("No file uploaded.");
+//   }
+
+//   const filePath = req.file.path;
+
+//   // Trigger Python script to process the audio
+//   exec(`python deepgram_script.py "${filePath}"`, (error, stdout, stderr) => {
+//     if (error) {
+//       console.error(`Error processing audio: ${error}`);
+//       return res.status(500).send("An error occurred during audio processing.");
+//     }
+//     if (stderr) {
+//       console.error(`Python script error: ${stderr}`);
+//     }
+//     console.log(`Audio processed: ${stdout}`);
+
+//     // Remove the audio file after processing
+//     fs.unlink(filePath, (err) => {
+//       if (err) console.error(`Error deleting file: ${err}`);
+//     });
+
+//     res.status(200).json({
+//       message: "File uploaded and processed successfully",
+//       result: stdout.trim(),
+//     });
+//   });
+// });
+
+// const PORT = process.env.PORT || 4000;
+
+// app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));

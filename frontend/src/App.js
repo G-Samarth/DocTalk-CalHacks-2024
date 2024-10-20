@@ -9,6 +9,7 @@ import LandingPage from "./components/LandingPage/LandingPage";
 import CalendarPage from "./components/CalendarPage/CalendarPage";
 import PatientCalendarPage from "./components/PatientCalendarPage/PatientCalendarPage";
 import VideoChat from "./components/VideoChat/VideoChat";
+import VideoChatNew from "./components/VideoChatNew/VideoChat";
 import ReviewPDF from "./components/ReviewPDF/ReviewPDF";
 import DoctorsPage from "./components/DoctorsPage/DoctorsPage";
 import "./index.css";
@@ -22,10 +23,12 @@ const App = () => {
         <Route path="/doctor/calendar" element={<CalendarPage />} />
         <Route path="/patient/doctors" element={<DoctorsPage />} />
         <Route path="/patient/calendar" element={<PatientCalendarPage />} />
-        <Route path="/doctor/video-chat" element={<VideoChat />} />
-        <Route path="/patient/video-chat" element={<VideoChat />} />
-        <Route path="/doctor/review-pdf" element={<ReviewPDF />} />
-        <Route path="/patient/review-pdf" element={<ReviewPDF />} />
+        {/* <Route path="/doctor/video-chat" element={<VideoChat />} />
+        <Route path="/patient/video-chat" element={<VideoChat />} /> */}
+        <Route path="/doctor/video-chat" element={<VideoChatNew />} />
+        <Route path="/patient/video-chat" element={<VideoChatNew />} />
+        <Route path="/doctor/review-pdf/:filePath" element={<ReviewPDF />} />
+        <Route path="/patient/review-pdf/:filePath" element={<ReviewPDF />} />
       </Routes>
     </Router>
   );

@@ -31,7 +31,7 @@ const Layout = ({ children }) => {
       <nav className="bg-white shadow-md py-4">
         <div className="container mx-auto flex justify-between items-center">
           <Link to={logoLink} className="text-3xl font-bold text-red-700">
-            HealthAssist
+            Conslt.ai
           </Link>
           <div className="flex items-center space-x-6">
             <div className="relative">
@@ -48,12 +48,6 @@ const Layout = ({ children }) => {
             >
               <User className="mr-2 h-5 w-5" />
               My Account
-            </Button>
-            <Button
-              variant="ghost"
-              className="text-gray-600 hover:text-red-700"
-            >
-              <Link to={`${logoLink}/calendar`}>Calendar</Link>
             </Button>
           </div>
         </div>

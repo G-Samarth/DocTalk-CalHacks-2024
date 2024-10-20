@@ -52,6 +52,12 @@ const PatientCalendarPage = () => {
     ]);
   };
 
+  const launchVideoCall = () => {
+    try {
+      window.open("https://doc-talk.daily.co/doc-talk", "_blank");
+    } catch (error) {}
+  };
+
   return (
     <Layout userType="patient">
       <div className="container mx-auto py-8">
@@ -112,7 +118,7 @@ const PatientCalendarPage = () => {
                     className="bg-gray-100 p-3 rounded-md"
                   >
                     <Link
-                      to="/patient/video-chat"
+                      onClick={launchVideoCall}
                       className="text-blue-600 hover:text-blue-800"
                     >
                       {appointment.date} - {appointment.time} with{" "}
