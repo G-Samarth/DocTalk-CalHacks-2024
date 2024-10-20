@@ -85,12 +85,6 @@ const CalendarPage = () => {
     return <div>Error: {error}</div>;
   }
 
-  const launchVideoCall = () => {
-    try {
-      window.open("https://doc-talk.daily.co/doc-talk", "_blank");
-    } catch (error) {}
-  };
-
   return (
     <Layout userType={userType}>
       <div className="container mx-auto py-8">
@@ -153,7 +147,7 @@ const CalendarPage = () => {
                       className="bg-gray-100 p-3 rounded-md hover:bg-gray-200 transition-colors"
                     >
                       <Link
-                        onClick={launchVideoCall}
+                        to={`/${userType}/video-call`}
                         className="text-blue-600 hover:text-blue-800 block"
                       >
                         <span className="font-semibold">

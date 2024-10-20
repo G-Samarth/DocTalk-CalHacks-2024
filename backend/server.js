@@ -1,5 +1,6 @@
 const express = require("express");
 const http = require("http");
+const https = require("https");
 const socketIo = require("socket.io");
 const cors = require("cors");
 const multer = require("multer");
@@ -8,6 +9,7 @@ const serviceAccount = require("./firebase-adminsdk.json");
 const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
+const FormData = require("form-data");
 require("dotenv").config();
 
 const app = express();
@@ -325,6 +327,7 @@ app.get("/api/check-call-and-recording", async (req, res) => {
 
     let recordingReady = false;
     let downloadedFilePath = null;
+    let processingResult = null;
 
     if (callEnded) {
       const recordingsResponse = await axios.get(
@@ -355,10 +358,15 @@ app.get("/api/check-call-and-recording", async (req, res) => {
             const filePath = path.join(recordingsDir, fileName);
             await downloadFile(downloadLink, filePath);
             downloadedFilePath = filePath;
-          } catch (downloadError) {
+
+            // Send the file to the Flask server
+            console.log("Sending file to Flask server");
+            processingResult = await sendFileToFlaskServer(filePath);
+          } catch (error) {
+            console.error("Error processing audio:", error);
             return res.status(500).json({
-              error: "Failed to download recording",
-              details: downloadError.message,
+              error: "Failed to process audio file",
+              details: error.message,
             });
           }
         }
@@ -371,6 +379,7 @@ app.get("/api/check-call-and-recording", async (req, res) => {
       downloadedFilePath: downloadedFilePath
         ? path.basename(downloadedFilePath)
         : null,
+      processingResult,
     });
   } catch (error) {
     res.status(500).json({
@@ -380,60 +389,25 @@ app.get("/api/check-call-and-recording", async (req, res) => {
   }
 });
 
+async function sendFileToFlaskServer(filePath) {
+  const form = new FormData();
+  form.append("audio", fs.createReadStream(filePath));
+
+  try {
+    const response = await axios.post(
+      "http://localhost:5000/process_transcription",
+      form,
+      {
+        headers: {
+          ...form.getHeaders(),
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error sending file to Flask server:", error);
+    throw error;
+  }
+}
+
 server.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
-
-// const express = require("express");
-// const cors = require("cors");
-// const multer = require("multer");
-// const { exec } = require("child_process");
-// const path = require("path");
-// const fs = require("fs");
-
-// const app = express();
-// app.use(cors());
-
-// // Set up multer for handling file uploads
-// const storage = multer.diskStorage({
-//   destination: function (req, file, cb) {
-//     cb(null, "uploads/");
-//   },
-//   filename: function (req, file, cb) {
-//     cb(null, "audio_" + Date.now() + path.extname(file.originalname));
-//   },
-// });
-
-// const upload = multer({ storage: storage });
-
-// app.post("/save-audio", upload.single("audio"), (req, res) => {
-//   if (!req.file) {
-//     return res.status(400).send("No file uploaded.");
-//   }
-
-//   const filePath = req.file.path;
-
-//   // Trigger Python script to process the audio
-//   exec(`python deepgram_script.py "${filePath}"`, (error, stdout, stderr) => {
-//     if (error) {
-//       console.error(`Error processing audio: ${error}`);
-//       return res.status(500).send("An error occurred during audio processing.");
-//     }
-//     if (stderr) {
-//       console.error(`Python script error: ${stderr}`);
-//     }
-//     console.log(`Audio processed: ${stdout}`);
-
-//     // Remove the audio file after processing
-//     fs.unlink(filePath, (err) => {
-//       if (err) console.error(`Error deleting file: ${err}`);
-//     });
-
-//     res.status(200).json({
-//       message: "File uploaded and processed successfully",
-//       result: stdout.trim(),
-//     });
-//   });
-// });
-
-// const PORT = process.env.PORT || 4000;
-
-// app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));

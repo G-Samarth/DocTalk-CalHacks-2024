@@ -12,6 +12,7 @@ import VideoChat from "./components/VideoChat/VideoChat";
 import VideoChatNew from "./components/VideoChatNew/VideoChat";
 import ReviewPDF from "./components/ReviewPDF/ReviewPDF";
 import DoctorsPage from "./components/DoctorsPage/DoctorsPage";
+import VideoCallPage from "./components/VideoCall/VideoCall";
 import "./index.css";
 
 const App = () => {
@@ -27,6 +28,8 @@ const App = () => {
         <Route path="/patient/video-chat" element={<VideoChat />} /> */}
         <Route path="/doctor/video-chat" element={<VideoChatNew />} />
         <Route path="/patient/video-chat" element={<VideoChatNew />} />
+        <Route path="/doctor/video-call" element={<VideoCallPage />} />
+        <Route path="/patient/video-call" element={<VideoCallPage />} />
         <Route path="/doctor/review-pdf/:filePath" element={<ReviewPDF />} />
         <Route path="/patient/review-pdf/:filePath" element={<ReviewPDF />} />
       </Routes>
