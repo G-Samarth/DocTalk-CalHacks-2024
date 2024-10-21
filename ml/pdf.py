@@ -9,9 +9,9 @@ from firebase_admin import credentials, storage
 # with open('output.json') as f:
 #     data = json.load(f)
 
-cred = credentials.Certificate('doctalk-9e28b-firebase-adminsdk-dxyqw-5d56251f69.json')
+cred = credentials.Certificate(os.getenv('FIREBASE_ADMIN_SDK'))
 firebase_admin.initialize_app(cred, {
-    'storageBucket': 'doctalk-9e28b.appspot.com'  # Your Firebase Storage bucket name
+    'storageBucket': os.getenv('FIREBASE_STORAGE_BUCKET')  # Your Firebase Storage bucket name
 })
 
 # Function to generate random appointment time within the next week
