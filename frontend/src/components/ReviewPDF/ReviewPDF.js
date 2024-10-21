@@ -3,6 +3,7 @@ import { useParams, useLocation } from "react-router-dom";
 import Layout from "../Layout/Layout.js";
 import { storage } from "../../firebase";
 import { ref, getDownloadURL } from "firebase/storage";
+import { Button } from "../Button/Button.js";
 
 const ReviewPDF = () => {
   const { filePath } = useParams();
@@ -63,6 +64,11 @@ const ReviewPDF = () => {
               <p>Loading file...</p>
             )}
           </div>
+        </div>
+        <div className="flex justify-center mt-6">
+          <Button size="lg" className="bg-red-700 hover:bg-red-800 text-white">
+            Re-Upload
+          </Button>
         </div>
       </div>
     </Layout>

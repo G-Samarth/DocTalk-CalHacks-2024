@@ -42,6 +42,7 @@ const Layout = ({ children }) => {
               />
               <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
             </div>
+            {/* <div>Insurance Number: A186**********43</div> */}
             <Button
               variant="ghost"
               className="text-gray-600 hover:text-red-700"
@@ -61,7 +62,7 @@ const Layout = ({ children }) => {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div>
-              <h3 className="text-2xl font-bold mb-4">HealthAssist</h3>
+              <h3 className="text-2xl font-bold mb-4">Conslt.ai</h3>
               <p className="mb-4">
                 Transforming Healthcare, One Consultation at a Time
               </p>
@@ -123,10 +124,10 @@ const Layout = ({ children }) => {
                 <li className="flex items-center">
                   <Mail size={16} className="mr-2" />
                   <a
-                    href="mailto:support@healthassist.com"
+                    href="mailto:support@consltai.com"
                     className="text-gray-400 hover:text-white"
                   >
-                    support@healthassist.com
+                    support@consltai.com
                   </a>
                 </li>
                 <li className="flex items-center">

@@ -93,7 +93,7 @@ const LandingPage = () => {
       <section id="features" className="py-12">
         <div className="container mx-auto">
           <h2 className="text-3xl font-bold mb-8 text-center">
-            Why This Application?
+            Why Conslt.ai?
           </h2>
           <div className="grid grid-cols-3 gap-8">
             <Card>
@@ -146,7 +146,7 @@ const LandingPage = () => {
       <section id="how-it-works" className="py-12 bg-gray-100">
         <div className="container mx-auto">
           <h2 className="text-3xl font-bold mb-8 text-center">
-            How to Use This Application?
+            How to Use Conslt.ai?
           </h2>
           <div className="grid grid-cols-3 gap-8">
             <Card>
